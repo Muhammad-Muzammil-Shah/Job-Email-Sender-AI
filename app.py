@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from resume_parser import extract_text_from_pdf
 from email_agent import generate_job_application_email
 from resume_matcher import find_best_resume
-from utils import extract_email, save_to_excel, create_gmail_url, get_tracker_path
+from utils import extract_email, save_to_excel, create_gmail_url, get_tracker_path, get_resumes_dir
 from outlook_sender import send_email_via_local_outlook, send_email_via_outlook, LOCAL_OUTLOOK_AVAILABLE
 import tempfile
 
@@ -98,10 +98,8 @@ def render_application_page():
     uploaded_resumes = st.file_uploader("Upload Resumes", type=["pdf"], accept_multiple_files=True)
     
     # Check for resumes in 'resumes' folder
-    resumes_dir = "resumes"
-    if not os.path.exists(resumes_dir):
-        os.makedirs(resumes_dir)
-        
+    resumes_dir = get_resumes_dir()
+    
     local_resume_files = [f for f in os.listdir(resumes_dir) if f.lower().endswith('.pdf')]
     
     selected_resumes = {} # Dict to store filename: file_content (bytes or path)
@@ -261,6 +259,15 @@ def render_application_page():
              # Gmail Direct Link
             gmail_url = create_gmail_url(recipient_email, subject, body)
             st.link_button("📤 Open in Gmail (Browser)", gmail_url, help="Opens a new tab in your Gmail with the email ready to send.")
+            st.caption("⚠️ Note: Attachments cannot be automatically added via link. Please attach your resume manually.")
+            
+            # Offer Direct Resume Download for convenience
+            st.download_button(
+                label="📥 Download Resume for Attachment",
+                data=data["resume_bytes"],
+                file_name=data["resume_name"],
+                mime="application/pdf"
+            )
 
         with col2:
             # Send Button

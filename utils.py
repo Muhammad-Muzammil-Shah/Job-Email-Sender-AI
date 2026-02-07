@@ -28,6 +28,25 @@ def get_tracker_path():
     # Local development
     return "job_application_tracker.xlsx"
 
+def get_resumes_dir():
+    """
+    Returns the persistent directory for storing resumes.
+    """
+    if os.name == 'posix' and os.getenv('WEBSITE_SITE_NAME'):
+        # Azure persistent storage
+        resume_path = "/home/data/resumes"
+    else:
+        # Local storage
+        resume_path = "resumes"
+        
+    if not os.path.exists(resume_path):
+        try:
+            os.makedirs(resume_path)
+        except OSError:
+            pass # Handle permission issues if any
+            
+    return resume_path
+
 def create_gmail_url(to_email, subject, body):
     """
     Creates a direct URL to compose a Gmail message.

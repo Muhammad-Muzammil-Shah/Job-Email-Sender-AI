@@ -38,7 +38,10 @@ def generate_job_application_email(job_description: str, resume_text: str):
        - No emojis.
        - Use clear paragraph breaks (double newlines).
        - Proper greeting (e.g., "Dear Hiring Manager," or specific name if found).
-       - **Sign-off**: Use a professional sign-off. Extract the candidate's name, email, and LinkedIn/GitHub (if available) from the resume to create the signature. Do NOT make up contact details. If not found, use placeholders like "[Candidate Name]".
+       - **Sign-off**: Use a professional sign-off.
+       - **Signature**: ALWAYS include the following links at the bottom:
+         LinkedIn: https://www.linkedin.com/in/syedmuhammadmuzammil077/
+         GitHub: https://github.com/Muhammad-Muzammil-Shah
 
     5. Output Format: Return valid JSON with three keys: "subject", "body", and "job_title".
        - "subject": A concise, professional subject line.
