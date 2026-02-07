@@ -1,0 +1,11 @@
+streamlit
+groq
+pypdf2
+google-api-python-client
+pandas
+openpyxl
+# pywin32 # Windows only (commented out for Cloud Deployment)
+
+google-auth-httplib2
+google-auth-oauthlib
+python-dotenv

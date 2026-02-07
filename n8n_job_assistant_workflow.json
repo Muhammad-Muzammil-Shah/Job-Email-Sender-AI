@@ -1,0 +1,220 @@
+{
+  "name": "AI Job Application Assistant (Groq + Outlook)",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "AI Job Application Assistant",
+        "formDescription": "Paste JD and Resume to generate an email.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Job Description",
+              "fieldType": "textarea",
+              "fieldName": "job_description",
+              "required": true
+            },
+            {
+              "fieldLabel": "Resume Text (Copy Paste)",
+              "fieldType": "textarea",
+              "fieldName": "resume_text",
+              "required": true
+            },
+            {
+              "fieldLabel": "Recruiter Email",
+              "fieldName": "recruiter_email",
+              "required": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.n8nFormTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "trigger-node",
+      "name": "Start Form"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GROQ_API_KEY_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "response_format",
+              "value": "={{ {\"type\": \"json_object\"} }}"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": \"You are a professional career coach. Write a professional job application email based on the candidate's resume and a job description.\\n\\nRules:\\n1. Tone: Professional, corporate, confident.\\n2. Length: 150-250 words.\\n3. Key Projects: Mention 3 relevant projects from resume.\\n4. Signature: Sincerely, M. Muzammil Shah\\n5. Output Format: Return valid JSON with keys: subject, body, job_title.\"\n  },\n  {\n    \"role\": \"user\",\n    \"content\": \"JOB DESCRIPTION:\\n\" + $json.job_description + \"\\n\\nRESUME CONTENT:\\n\" + $json.resume_text + \"\\n\\nGenerate the email in JSON.\"\n  }\n] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "groq-api",
+      "name": "AI Email Generator (Groq)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the JSON content directly from Groq response\nconst content = items[0].json.choices[0].message.content;\nconst parsed = JSON.parse(content);\n\nreturn {\n  json: {\n    subject: parsed.subject,\n    body: parsed.body,\n    job_title: parsed.job_title,\n    recruiter_email: $('Start Form').item.json.recruiter_email\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "parse-json",
+      "name": "Parse AI Response"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "file": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "range": "A:D",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job Title": "={{ $json.job_title }}",
+            "Email": "={{ $json.recruiter_email }}",
+            "Date": "={{ new Date().toISOString().split('T')[0] }}",
+            "Status": "Draft Created"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "removed": false,
+              "analyticsType": "text"
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "removed": false,
+              "analyticsType": "text"
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "removed": false,
+              "analyticsType": "text"
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "removed": false,
+              "analyticsType": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -100
+      ],
+      "id": "excel-log",
+      "name": "Log to Excel"
+    },
+    {
+      "parameters": {
+        "toRecipients": "={{ $json.recruiter_email }}",
+        "subject": "={{ $json.subject }}",
+        "body": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        660,
+        120
+      ],
+      "id": "send-email",
+      "name": "Send via Outlook"
+    }
+  ],
+  "connections": {
+    "Start Form": {
+      "main": [
+        [
+          {
+            "node": "AI Email Generator (Groq)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Generator (Groq)": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Log to Excel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send via Outlook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
