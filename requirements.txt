@@ -9,3 +9,5 @@ openpyxl
 google-auth-httplib2
 google-auth-oauthlib
 python-dotenv
+gspread
+oauth2client

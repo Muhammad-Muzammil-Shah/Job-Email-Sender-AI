@@ -2,6 +2,9 @@ import re
 import pandas as pd
 import os
 import urllib.parse
+import json
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
 def create_gmail_url(to_email, subject, body):
@@ -32,14 +35,58 @@ def extract_email(text: str) -> str:
         return match.group(0)
     return None
 
+def save_to_google_sheet(job_title, email_address):
+    """
+    Saves data to Google Sheets if configured.
+    """
+    try:
+        # Check for credentials in environment variable
+        creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+        sheet_name = os.getenv("GOOGLE_SHEET_NAME", "Job Application Tracker")
+        
+        if not creds_json:
+            return False, "GOOGLE_CREDENTIALS_JSON not found in environment."
+
+        # Define scope
+        scope = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        
+        # Authenticate with credentials from JSON string
+        creds_dict = json.loads(creds_json)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        client = gspread.authorize(creds)
+        
+        # Open the sheet
+        try:
+            sheet = client.open(sheet_name).sheet1
+        except gspread.SpreadsheetNotFound:
+            return False, f"Spreadsheet '{sheet_name}' not found. Please share it with the service account email."
+
+        # Append row
+        date_applied = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        row = [job_title, email_address, date_applied, "Sent"]
+        sheet.append_row(row)
+        
+        return True, "Saved to Google Sheet successfully."
+        
+    except Exception as e:
+        return False, f"Google Sheet Error: {str(e)}"
+
 def save_to_excel(job_title, email_address):
     """
-    Saves the job application details to an Excel file.
+    Saves the job application details to an Excel file AND Google Sheets.
     
     Args:
         job_title (str): The title of the job.
         email_address (str): The recruiter's email address.
     """
+    # 1. Save to Google Sheets (Cloud Persistence)
+    gs_success, gs_msg = save_to_google_sheet(job_title, email_address)
+    print(f"Google Sheets Status: {gs_msg}")
+
+    # 2. Save to Local Excel (Backup)
     file_path = "job_application_tracker.xlsx"
     date_applied = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
