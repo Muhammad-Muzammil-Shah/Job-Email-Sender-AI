@@ -7,6 +7,27 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
+def get_tracker_path():
+    """
+    Returns the persistent path for the Excel tracker file.
+    On Azure (Linux), it uses /home/data to persist across deployments.
+    On Local (Windows/Mac), it uses the current directory.
+    """
+    # Check if running on Azure (Linux environment generally)
+    if os.name == 'posix' and os.getenv('WEBSITE_SITE_NAME'):
+        # Azure App Service specific persistence path
+        data_dir = "/home/data"
+        if not os.path.exists(data_dir):
+            try:
+                os.makedirs(data_dir)
+            except OSError:
+                # Fallback if permission denied
+                return "job_application_tracker.xlsx"
+        return os.path.join(data_dir, "job_application_tracker.xlsx")
+    
+    # Local development
+    return "job_application_tracker.xlsx"
+
 def create_gmail_url(to_email, subject, body):
     """
     Creates a direct URL to compose a Gmail message.
@@ -86,8 +107,8 @@ def save_to_excel(job_title, email_address):
     gs_success, gs_msg = save_to_google_sheet(job_title, email_address)
     print(f"Google Sheets Status: {gs_msg}")
 
-    # 2. Save to Local Excel (Backup)
-    file_path = "job_application_tracker.xlsx"
+    # 2. Save to Local/Persistent Excel (Backup)
+    file_path = get_tracker_path()
     date_applied = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     new_data = {

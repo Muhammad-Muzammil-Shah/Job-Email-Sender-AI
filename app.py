@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from resume_parser import extract_text_from_pdf
 from email_agent import generate_job_application_email
 from resume_matcher import find_best_resume
-from utils import extract_email, save_to_excel, create_gmail_url
+from utils import extract_email, save_to_excel, create_gmail_url, get_tracker_path
 from outlook_sender import send_email_via_local_outlook, send_email_via_outlook, LOCAL_OUTLOOK_AVAILABLE
 import tempfile
 
@@ -315,7 +315,7 @@ if __name__ == "__main__":
     with st.sidebar:
         st.divider()
         st.subheader("📊 Application Tracker")
-        tracker_file = "job_application_tracker.xlsx"
+        tracker_file = get_tracker_path()
         if os.path.exists(tracker_file):
             with open(tracker_file, "rb") as f:
                 st.download_button(
