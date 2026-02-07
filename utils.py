@@ -1,7 +1,20 @@
 import re
 import pandas as pd
 import os
+import urllib.parse
 from datetime import datetime
+
+def create_gmail_url(to_email, subject, body):
+    """
+    Creates a direct URL to compose a Gmail message.
+    """
+    base_url = "https://mail.google.com/mail/?view=cm&fs=1"
+    params = {
+        "to": to_email,
+        "su": subject,
+        "body": body
+    }
+    return f"{base_url}&{urllib.parse.urlencode(params)}"
 
 def extract_email(text: str) -> str:
     """

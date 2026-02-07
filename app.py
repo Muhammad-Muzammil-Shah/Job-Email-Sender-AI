@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from resume_parser import extract_text_from_pdf
 from email_agent import generate_job_application_email
 from resume_matcher import find_best_resume
-from utils import extract_email, save_to_excel
+from utils import extract_email, save_to_excel, create_gmail_url
 from outlook_sender import send_email_via_local_outlook, send_email_via_outlook, LOCAL_OUTLOOK_AVAILABLE
 import tempfile
 
@@ -78,7 +78,15 @@ def main():
     # 1. Add uploaded resumes
     if uploaded_resumes:
         for uploaded_file in uploaded_resumes:
-            selected_resumes[uploaded_file.name] = uploaded_file
+            # Save to disk for persistence across reloads
+            save_path = os.path.join(resumes_dir, uploaded_file.name)
+            with open(save_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            
+            selected_resumes[uploaded_file.name] = save_path # Use the saved path
+            
+    # Refresh local list after saving uploads
+    local_resume_files = [f for f in os.listdir(resumes_dir) if f.lower().endswith('.pdf')]
 
     # 2. Add local resumes (checkbox selection or auto-include)
     if local_resume_files:
@@ -213,50 +221,61 @@ def main():
         st.divider()
         st.write(f"**Attachment:** {data['resume_name']}")
 
-        # Send Button
-        if st.button("Send Email 🚀"):
-            if not recipient_email:
-                st.error("Please enter a recipient email address.")
-            else:
-                with st.spinner("Sending email..."):
-                    try:
-                        # Create a temporary file for the resume attachment
-                        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                            tmp.write(data["resume_bytes"])
-                            temp_resume_path = tmp.name
-                        
-                        success = False
-                        msg = ""
+        st.divider()
+        st.subheader("3. Select Sending Option")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+             # Gmail Direct Link
+            gmail_url = create_gmail_url(recipient_email, subject, body)
+            st.link_button("📤 Open in Gmail (Browser)", gmail_url, help="Opens a new tab in your Gmail with the email ready to send.")
 
-                        if email_method == "Outlook Desktop (No Password)":
-                            success, msg = send_email_via_local_outlook(
-                                to_email=recipient_email,
-                                subject=subject,
-                                body=body,
-                                attachment_path=temp_resume_path
-                            )
-                        else:
-                            success, msg = send_email_via_outlook(
-                                to_email=recipient_email,
-                                subject=subject,
-                                body=body,
-                                attachment_bytes=data["resume_bytes"],
-                                attachment_name=data["resume_name"]
-                            )
+        with col2:
+            # Send Button
+            if st.button("📧 Send via App (Configuration Required)"):
+                if not recipient_email:
+                    st.error("Please enter a recipient email address.")
+                else:
+                    with st.spinner("Sending email..."):
+                        try:
+                            # Create a temporary file for the resume attachment
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                                tmp.write(data["resume_bytes"])
+                                temp_resume_path = tmp.name
+                            
+                            success = False
+                            msg = ""
 
-                        # Clean up temp file
-                        if os.path.exists(temp_resume_path):
-                            os.unlink(temp_resume_path)
+                            if email_method == "Outlook Desktop (No Password)":
+                                success, msg = send_email_via_local_outlook(
+                                    to_email=recipient_email,
+                                    subject=subject,
+                                    body=body,
+                                    attachment_path=temp_resume_path
+                                )
+                            else:
+                                success, msg = send_email_via_outlook(
+                                    to_email=recipient_email,
+                                    subject=subject,
+                                    body=body,
+                                    attachment_bytes=data["resume_bytes"],
+                                    attachment_name=data["resume_name"]
+                                )
 
-                        if success:
-                            st.success(f"✅ Email sent successfully to {recipient_email}!")
-                            save_to_excel(job_title_extracted, recipient_email)
-                            st.balloons()
-                        else:
-                            st.error(f"❌ Failed to send email: {msg}")
+                            # Clean up temp file
+                            if os.path.exists(temp_resume_path):
+                                os.unlink(temp_resume_path)
 
-                    except Exception as e:
-                        st.error(f"An unexpected error occurred: {e}")
+                            if success:
+                                st.success(f"✅ Email sent successfully to {recipient_email}!")
+                                save_to_excel(job_title_extracted, recipient_email)
+                                st.balloons()
+                            else:
+                                st.error(f"❌ Failed to send email: {msg}")
+
+                        except Exception as e:
+                            st.error(f"An unexpected error occurred: {e}")
 
 if __name__ == "__main__":
     main()
