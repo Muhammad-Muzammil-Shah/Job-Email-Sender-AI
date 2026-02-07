@@ -15,36 +15,65 @@ load_dotenv()
 
 st.set_page_config(page_title="Job Application Assistant", layout="centered")
 
-def main():
-    st.title("🤖 AI Job Application Assistant")
-    st.markdown("Generate and send professional job application emails.")
+def init_session_state():
+    if "step" not in st.session_state:
+        st.session_state.step = 1
+    if "email_method" not in st.session_state:
+        st.session_state.email_method = "Gmail (Browser)"
+    if "email_data" not in st.session_state:
+        st.session_state.email_data = None
 
-    # Sidebar for setup instructions
-    with st.sidebar:
-        st.header("⚙️ Configuration")
+def main():
+    init_session_state()
+    st.title("🤖 AI Job Application Assistant")
+
+    # Step 1: Connection / Setup (if not connected)
+    if st.session_state.step == 1:
+        st.markdown("### Step 1: Connect your Email")
+        st.info("Choose how you want to send emails.")
         
-        sending_options = ["Outlook SMTP (Requires Password)"]
-        if LOCAL_OUTLOOK_AVAILABLE:
-            sending_options.insert(0, "Outlook Desktop (No Password)")
-        
-        email_method = st.radio(
-            "Select Sending Method:",
-            sending_options
+        method = st.radio(
+            "Select Email Service:",
+            ["Gmail (Browser) - Recommended", "Outlook SMTP (Requires Password)", "Outlook Desktop (Windows Only)"],
+            index=0
         )
         
+        if method == "Outlook Desktop (Windows Only)" and not LOCAL_OUTLOOK_AVAILABLE:
+            st.error("❌ Outlook Desktop is not available on this server/machine.")
+        
+        if st.button("Connect & Continue"):
+            if method == "Outlook Desktop (Windows Only)" and not LOCAL_OUTLOOK_AVAILABLE:
+                st.error("Cannot select Outlook Desktop on this environment.")
+            else:
+                st.session_state.email_method = method
+                st.session_state.step = 2
+                st.rerun()
+
+    # Step 2: Application Logic
+    elif st.session_state.step == 2:
+        render_application_page()
+
+def render_application_page():
+    # Show connected status in sidebar
+    with st.sidebar:
+        st.success(f"✅ Connected: {st.session_state.email_method}")
+        if st.button("Change Email Method"):
+            st.session_state.step = 1
+            st.rerun()
         st.divider()
 
         st.header("Setup & Instructions")
-        if email_method == "Outlook Desktop (No Password)":
+        email_method = st.session_state.email_method
+        
+        if email_method == "Outlook Desktop (Windows Only)":
             st.info(
                 """
                 **Requirements:**
                 1. Classic Outlook installed & open.
                 2. Logged in as your sender account.
-                3. **'New Outlook' is NOT supported.**
                 """
             )
-        else:
+        elif email_method == "Outlook SMTP (Requires Password)":
              st.info(
                 """
                 **Requirements:**
@@ -53,6 +82,8 @@ def main():
                 3. **Note:** If 2FA is on, use an **App Password**.
                 """
             )
+        else:
+            st.info("Uses your browser's Gmail session. No password required.")
 
         if not os.path.exists(".env"):
             st.warning("⚠️ .env file not found!")
@@ -279,3 +310,19 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # Sidebar Footer: Data Download
+    with st.sidebar:
+        st.divider()
+        st.subheader("📊 Application Tracker")
+        tracker_file = "job_application_tracker.xlsx"
+        if os.path.exists(tracker_file):
+            with open(tracker_file, "rb") as f:
+                st.download_button(
+                    label="Download Excel Tracker",
+                    data=f,
+                    file_name="job_applications.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        else:
+            st.caption("No applications tracked yet.")
