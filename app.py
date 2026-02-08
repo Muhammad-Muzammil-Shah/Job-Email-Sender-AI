@@ -143,6 +143,11 @@ def preview():
                 return redirect(url_for('index'))
             else:
                 flash(f"Error: {msg}")
+
+        elif method == 'save_tracker':
+            save_to_excel(data['job_title'], recipient)
+            flash("Saved to Excel tracker successfully!")
+            return redirect(url_for('index'))
                 
         elif method == 'smtp':
             if not email_user or not email_pass:
