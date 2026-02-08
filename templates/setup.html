@@ -74,8 +74,11 @@
                 </div>
 
                 <div class="d-grid gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg">Save & Next ➝</button>
-                    <a href="/upload" class="btn btn-link text-decoration-none text-muted">Skip Step (I'll enter later)</a>
+                    <button type="button" class="btn btn-success btn-lg" onclick="saveOnly()">💾 Save Credentials</button>
+                    <button type="submit" class="btn btn-primary btn-lg">Next Step ➝</button>
+                </div>
+                <div class="text-center mt-2">
+                    <a href="/upload" class="text-decoration-none text-muted small">Skip Step (I'll enter later)</a>
                 </div>
             </form>
         </div>
@@ -106,11 +109,15 @@
         }
     }
 
-    function saveAndNext(e) {
-        e.preventDefault();
+    function performSave() {
         const email = document.getElementById('userEmail').value;
         const pass = document.getElementById('userPass').value;
         const service = document.getElementById('serviceSelect').value;
+
+        if(!email || !pass) {
+            alert("Please fill in email and password.");
+            return false;
+        }
 
         if(service === 'gmail' && pass.length < 10) {
             alert("Gmail App Password looks too short. It should be 16 characters.");
@@ -120,9 +127,20 @@
         localStorage.setItem("jobApp_email", email);
         localStorage.setItem("jobApp_pass", pass);
         localStorage.setItem("jobApp_service", service);
+        return true;
+    }
 
-        // Redirect to next page
-        window.location.href = "/upload";
+    function saveOnly() {
+        if(performSave()) {
+            alert("✅ Credentials Saved to Browser!");
+        }
+    }
+
+    function saveAndNext(e) {
+        e.preventDefault();
+        if(performSave()) {
+            window.location.href = "/upload";
+        }
         return false;
     }
 
