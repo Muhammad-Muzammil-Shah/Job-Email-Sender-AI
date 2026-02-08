@@ -12,12 +12,16 @@ try:
 except ImportError:
     HAS_GSPREAD = False
 
-def get_tracker_path():
+def get_tracker_path(user_id=None):
     """
     Returns the persistent path for the Excel tracker file.
     On Azure (Linux), it uses /home/data to persist across deployments.
     On Local (Windows/Mac), it uses the current directory.
     """
+    filename = "job_application_tracker.xlsx"
+    if user_id:
+        filename = f"{user_id}_{filename}"
+
     # Check if running on Azure (Linux environment generally)
     if os.name == 'posix' and os.getenv('WEBSITE_SITE_NAME'):
         # Azure App Service specific persistence path
@@ -27,13 +31,13 @@ def get_tracker_path():
                 os.makedirs(data_dir)
             except OSError:
                 # Fallback if permission denied
-                return "job_application_tracker.xlsx"
-        return os.path.join(data_dir, "job_application_tracker.xlsx")
+                return filename
+        return os.path.join(data_dir, filename)
     
     # Local development
-    return "job_application_tracker.xlsx"
+    return filename
 
-def get_resumes_dir():
+def get_resumes_dir(user_id=None):
     """
     Returns the persistent directory for storing resumes.
     """
@@ -43,10 +47,13 @@ def get_resumes_dir():
     else:
         # Local storage
         resume_path = "resumes"
+    
+    if user_id:
+        resume_path = os.path.join(resume_path, user_id)
         
     if not os.path.exists(resume_path):
         try:
-            os.makedirs(resume_path)
+            os.makedirs(resume_path, exist_ok=True)
         except OSError:
             pass # Handle permission issues if any
             
@@ -122,7 +129,7 @@ def save_to_google_sheet(job_title, email_address):
     except Exception as e:
         return False, f"Google Sheet Error: {str(e)}"
 
-def save_to_excel(job_title, email_address):
+def save_to_excel(job_title, email_address, user_id=None):
     """
     Saves the job application details to an Excel file AND Google Sheets.
     
@@ -135,7 +142,7 @@ def save_to_excel(job_title, email_address):
     print(f"Google Sheets Status: {gs_msg}")
 
     # 2. Save to Local/Persistent Excel (Backup)
-    file_path = get_tracker_path()
+    file_path = get_tracker_path(user_id)
     date_applied = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     new_data = {

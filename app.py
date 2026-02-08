@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, session
 import os
 import json
+import uuid
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import tempfile
@@ -14,11 +15,13 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
-app.config['UPLOAD_FOLDER'] = get_resumes_dir()
+# app.config['UPLOAD_FOLDER'] is now dynamic per user, so we handle it in routes
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max limit
 
-# Ensure resumes directory exists
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+@app.before_request
+def ensure_user_id():
+    if 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
 
 @app.route('/')
 def index():
@@ -28,6 +31,9 @@ def index():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_page():
     # Page 2: Upload & Process
+    user_id = session.get('user_id')
+    user_resumes_dir = get_resumes_dir(user_id)
+    
     if request.method == 'POST':
         action = request.form.get('action')
         
@@ -40,7 +46,7 @@ def upload_page():
                 if file and file.filename and file.filename.lower().endswith('.pdf'):
                     filename = secure_filename(file.filename)
                     if filename:
-                        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                        file.save(os.path.join(user_resumes_dir, filename))
             flash(f'{len(files)} resumes uploaded successfully.')
             return redirect(request.url)
             
@@ -51,8 +57,7 @@ def upload_page():
                 return redirect(request.url)
                 
             # Get selected resume logic
-            resumes_dir = get_resumes_dir()
-            local_resumes = [f for f in os.listdir(resumes_dir) if f.lower().endswith('.pdf')]
+            local_resumes = [f for f in os.listdir(user_resumes_dir) if f.lower().endswith('.pdf')]
             
             if not local_resumes:
                 flash('No resumes found. Please upload one.')
@@ -61,7 +66,7 @@ def upload_page():
             # Process Resumes
             resume_texts = {}
             for name in local_resumes:
-                path = os.path.join(resumes_dir, name)
+                path = os.path.join(user_resumes_dir, name)
                 try:
                     with open(path, "rb") as f:
                         text = extract_text_from_pdf(f.read())
@@ -100,15 +105,17 @@ def upload_page():
             return redirect(url_for('preview'))
 
     # GET Request: Show Upload Page
-    resumes_dir = get_resumes_dir()
-    resumes = [f for f in os.listdir(resumes_dir) if f.lower().endswith('.pdf')]
-    return render_template('upload.html', resumes=resumes)
+    local_resumes = [f for f in os.listdir(user_resumes_dir) if f.lower().endswith('.pdf')]
+    return render_template('upload.html', resumes=local_resumes)
 
 @app.route('/preview', methods=['GET', 'POST'])
 def preview():
     data = session.get('email_data')
     if not data:
         return redirect(url_for('index'))
+    
+    user_id = session.get('user_id')
+    user_resumes_dir = get_resumes_dir(user_id)
     
     if request.method == 'POST':
         # Send Email Logic
@@ -128,7 +135,7 @@ def preview():
         data['body'] = body
         session['email_data'] = data
 
-        resume_path = os.path.join(get_resumes_dir(), data['resume_name'])
+        resume_path = os.path.join(user_resumes_dir, data['resume_name'])
         
         if method == 'browser':
              # The button is a link in the frontend, handled there or redirect
@@ -139,13 +146,13 @@ def preview():
             success, msg = send_email_via_local_outlook(recipient, subject, body, resume_path)
             if success:
                 flash(f"Sent via Outlook Desktop! {msg}")
-                save_to_excel(data['job_title'], recipient)
+                save_to_excel(data['job_title'], recipient, user_id=user_id)
                 return redirect(url_for('index'))
             else:
                 flash(f"Error: {msg}")
 
         elif method == 'save_tracker':
-            save_to_excel(data['job_title'], recipient)
+            save_to_excel(data['job_title'], recipient, user_id=user_id)
             flash("Saved to Excel tracker successfully!")
             return redirect(url_for('index'))
                 
@@ -168,7 +175,7 @@ def preview():
                 
                 if success:
                     flash(f"Sent successfully via {safe_service.title()}!")
-                    save_to_excel(data['job_title'], recipient)
+                    save_to_excel(data['job_title'], recipient, user_id=user_id)
                     return redirect(url_for('index'))
                 else:
                     flash(f"Failed: {msg}")
@@ -178,7 +185,8 @@ def preview():
 @app.route('/delete_resume/<filename>')
 def delete_resume(filename):
     try:
-        path = os.path.join(get_resumes_dir(), secure_filename(filename))
+        user_id = session.get('user_id')
+        path = os.path.join(get_resumes_dir(user_id), secure_filename(filename))
         if os.path.exists(path):
             os.remove(path)
             flash(f"Deleted {filename}")
@@ -188,9 +196,10 @@ def delete_resume(filename):
 
 @app.route('/download_tracker')
 def download_tracker():
-    path = get_tracker_path()
+    user_id = session.get('user_id')
+    path = get_tracker_path(user_id)
     if os.path.exists(path):
-        return send_file(path, as_attachment=True)
+        return send_file(path, as_attachment=True, download_name="job_application_tracker.xlsx")
     flash("No tracker file found.")
     return redirect(url_for('index'))
 
