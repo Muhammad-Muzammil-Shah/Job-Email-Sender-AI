@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step 1: Setup Credentials - AI Job Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding-top: 40px; padding-bottom: 40px; }
+        .setup-card { max-width: 600px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 12px; }
+        .step-indicator { text-align: center; margin-bottom: 30px; }
+        .step-badge { display: inline-block; width: 30px; height: 30px; line-height: 30px; border-radius: 50%; background: #e9ecef; color: #6c757d; font-weight: bold; margin: 0 5px; }
+        .step-badge.active { background: #0d6efd; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div class="step-indicator">
+        <span class="step-badge active">1</span>
+        <span class="step-badge">2</span>
+        <span class="step-badge">3</span>
+        <h4 class="mt-2">Setup Credentials</h4> 
+    </div>
+
+    <div class="card setup-card">
+        <div class="card-header bg-primary text-white p-3">
+            <h5 class="mb-0">🔐 Connect Your Email</h5>
+        </div>
+        <div class="card-body p-4">
+            
+            <p class="text-muted small">
+                Your credentials are saved <b>locally on this device</b>. We do not store them on our servers until you send an email.
+            </p>
+
+            <form id="setupForm" onsubmit="return saveAndNext(event)">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Select Email Service</label>
+                    <select class="form-select" id="serviceSelect" onchange="toggleInstructions()">
+                        <option value="gmail">Gmail (Recommended)</option>
+                        <option value="outlook">Outlook</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Email Address</label>
+                    <input type="email" class="form-control" id="userEmail" placeholder="you@example.com" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" id="passLabel">App Password</label>
+                    <input type="password" class="form-control" id="userPass" placeholder="16-character code" required>
+                    <div class="form-text" id="passHelp"></div>
+                </div>
+
+                <!-- Instructions Section -->
+                <div class="alert alert-info small mt-4" id="gmailInstructions">
+                    <h6>❓ How to get Gmail App Password:</h6>
+                    <div class="mb-2">
+                        <a href="https://myaccount.google.com/apppasswords" target="_blank" class="btn btn-sm btn-light border fw-bold">👉 Click here to create App Password</a>
+                    </div>
+                    <ol class="mb-0 ps-3">
+                        <li>The link above opens your Google Account settings.</li>
+                        <li><b>If asked:</b> Sign in to your Google Account.</li>
+                        <li><b>Select App:</b> Mail | <b>Select Device:</b> Windows Computer.</li>
+                        <li>Click <b>Generate</b>. Copy the 16-character code (yellow bar).</li>
+                    </ol>
+                </div>
+
+                <div class="alert alert-secondary small mt-4 d-none" id="outlookInstructions">
+                    <h6>ℹ️ Outlook Credentials:</h6>
+                    <p class="mb-0">For Outlook, you can usually use your <b>regular login password</b>.</p>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">Save & Next ➝</button>
+                    <a href="/upload" class="btn btn-link text-decoration-none text-muted">Skip Step (I'll enter later)</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleInstructions() {
+        const service = document.getElementById('serviceSelect').value;
+        const passLabel = document.getElementById('passLabel');
+        const passInput = document.getElementById('userPass');
+        const passHelp = document.getElementById('passHelp');
+
+        if(service === 'gmail') {
+            document.getElementById('gmailInstructions').classList.remove('d-none');
+            document.getElementById('outlookInstructions').classList.add('d-none');
+            
+            passLabel.innerText = "App Password (16-char code)";
+            passInput.placeholder = "abcd efgh ijkl mnop";
+            passHelp.innerHTML = '<span class="text-danger">🛑 Do NOT use your regular password. Use the 16-char code.</span>';
+        } else {
+            document.getElementById('gmailInstructions').classList.add('d-none');
+            document.getElementById('outlookInstructions').classList.remove('d-none');
+            
+            passLabel.innerText = "Outlook Password";
+            passInput.placeholder = "Your regular outlook password";
+            passHelp.innerHTML = '<span class="text-muted">Enter the password you use to login to Outlook.</span>';
+        }
+    }
+
+    function saveAndNext(e) {
+        e.preventDefault();
+        const email = document.getElementById('userEmail').value;
+        const pass = document.getElementById('userPass').value;
+        const service = document.getElementById('serviceSelect').value;
+
+        if(service === 'gmail' && pass.length < 10) {
+            alert("Gmail App Password looks too short. It should be 16 characters.");
+            return false;
+        }
+
+        localStorage.setItem("jobApp_email", email);
+        localStorage.setItem("jobApp_pass", pass);
+        localStorage.setItem("jobApp_service", service);
+
+        // Redirect to next page
+        window.location.href = "/upload";
+        return false;
+    }
+
+    // Load saved data
+    document.addEventListener("DOMContentLoaded", function() {
+        if(localStorage.getItem("jobApp_email")) document.getElementById('userEmail').value = localStorage.getItem("jobApp_email");
+        if(localStorage.getItem("jobApp_pass")) document.getElementById('userPass').value = localStorage.getItem("jobApp_pass");
+        if(localStorage.getItem("jobApp_service")) {
+            document.getElementById('serviceSelect').value = localStorage.getItem("jobApp_service");
+        }
+        toggleInstructions(); // Initialize view
+    });
+</script>
+
+</body>
+</html>

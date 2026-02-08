@@ -11,3 +11,7 @@ google-auth-oauthlib
 python-dotenv
 gspread
 oauth2client
+
+flask
+
+gunicorn

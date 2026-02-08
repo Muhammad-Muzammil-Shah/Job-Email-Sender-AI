@@ -66,27 +66,19 @@ def send_email_via_local_outlook(to_email, subject, body, attachment_path=None):
              return False, "Outlook is running with different permissions than this script.\n1. Close Outlook.\n2. Re-open Outlook normally (NOT as Admin).\n3. If VS Code is running as Admin, restart it normally."
         return False, f"Local Outlook Error: {e}. Make sure Outlook is open."
 
-def send_email_via_outlook(to_email, subject, body, attachment_bytes, attachment_name):
+def send_smtp_email(to_email, subject, body, attachment_bytes, attachment_name, sender_email, sender_password, service="outlook"):
     """
-    Sends an email using Outlook SMTP server.
+    Sends an email using SMTP server (Outlook or Gmail).
+    """
+    if service.lower() == "gmail":
+        smtp_server = "smtp.gmail.com"
+        smtp_port = 587
+    else:
+        smtp_server = "smtp.office365.com"
+        smtp_port = 587
     
-    Args:
-        to_email (str): Recipient email.
-        subject (str): Email subject.
-        body (str): Email body.
-        attachment_bytes (bytes): The file content in bytes.
-        attachment_name (str): The filename for the attachment.
-        
-    Returns:
-        tuple: (bool, str) - (Success status, Message)
-    """
-    smtp_server = "smtp.office365.com"
-    smtp_port = 587
-    sender_email = os.getenv("OUTLOOK_EMAIL")
-    sender_password = os.getenv("OUTLOOK_PASSWORD")
-
     if not sender_email or not sender_password:
-        return False, "Error: Outlook credentials not found in .env"
+        return False, f"Error: {service} credentials not provided."
 
     try:
         msg = MIMEMultipart()
@@ -107,7 +99,12 @@ def send_email_via_outlook(to_email, subject, body, attachment_bytes, attachment
         text = msg.as_string()
         server.sendmail(sender_email, to_email, text)
         server.quit()
-        return True, "Email sent successfully"
+        return True, "Email sent successfully!"
+    except smtplib.SMTPAuthenticationError as e:
+        return False, f"SMTP Auth Error: {e.smtp_error}\nHint: Use an App Password if 2FA is on."
     except Exception as e:
-        print(f"SMTP Error: {e}")
-        return False, f"SMTP Error: {str(e)}"
+        return False, f"SMTP Error: {e}"
+
+def send_email_via_outlook(to_email, subject, body, attachment_bytes, attachment_name, sender_email=None, sender_password=None):
+    # Backward compatibility wrapper
+    return send_smtp_email(to_email, subject, body, attachment_bytes, attachment_name, sender_email, sender_password, service="outlook")

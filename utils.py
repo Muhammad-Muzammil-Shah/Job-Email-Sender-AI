@@ -3,9 +3,14 @@ import pandas as pd
 import os
 import urllib.parse
 import json
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+
+try:
+    import gspread
+    from oauth2client.service_account import ServiceAccountCredentials
+    HAS_GSPREAD = True
+except ImportError:
+    HAS_GSPREAD = False
 
 def get_tracker_path():
     """
@@ -79,6 +84,9 @@ def save_to_google_sheet(job_title, email_address):
     """
     Saves data to Google Sheets if configured.
     """
+    if not HAS_GSPREAD:
+        return False, "Google Sheets support not available (module 'gspread' missing)."
+        
     try:
         # Check for credentials in environment variable
         creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
