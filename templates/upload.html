@@ -14,6 +14,26 @@
 </head>
 <body>
 
+<script>
+// Sync user_id between localStorage and server session
+(async function syncUserId() {
+    const storedId = localStorage.getItem('jobApp_user_id');
+    if (storedId) {
+        await fetch('/api/set_user_id', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_id: storedId})
+        });
+    } else {
+        const resp = await fetch('/api/get_user_id');
+        const data = await resp.json();
+        if (data.user_id) {
+            localStorage.setItem('jobApp_user_id', data.user_id);
+        }
+    }
+})();
+</script>
+
 <div class="container" style="max-width: 900px;">
     
     <div class="text-center mb-4">
@@ -22,6 +42,8 @@
         <span class="step-badge">3</span>
         <h4 class="mt-2">Resumes & Job Description</h4> 
         <a href="/" class="small text-decoration-none">← Back to Setup</a>
+        <span class="mx-2">|</span>
+        <a href="/tracker" class="small text-decoration-none">📊 View Sent Applications</a>
     </div>
 
     {% with messages = get_flashed_messages() %}

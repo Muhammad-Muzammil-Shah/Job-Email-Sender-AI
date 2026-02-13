@@ -15,13 +15,36 @@
 </head>
 <body>
 
+<script>
+// Sync user_id between localStorage and server session
+(async function syncUserId() {
+    const storedId = localStorage.getItem('jobApp_user_id');
+    if (storedId) {
+        // Send stored ID to server
+        await fetch('/api/set_user_id', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_id: storedId})
+        });
+    } else {
+        // Get server ID and save to localStorage
+        const resp = await fetch('/api/get_user_id');
+        const data = await resp.json();
+        if (data.user_id) {
+            localStorage.setItem('jobApp_user_id', data.user_id);
+        }
+    }
+})();
+</script>
+
 <div class="container">
     
     <div class="step-indicator">
         <span class="step-badge active">1</span>
         <span class="step-badge">2</span>
         <span class="step-badge">3</span>
-        <h4 class="mt-2">Setup Credentials</h4> 
+        <h4 class="mt-2">Setup Credentials</h4>
+        <a href="/tracker" class="btn btn-outline-primary btn-sm mt-2">📊 View Sent Applications</a>
     </div>
 
     <div class="card setup-card">

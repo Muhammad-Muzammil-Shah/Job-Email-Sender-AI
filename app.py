@@ -5,6 +5,7 @@ import uuid
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import tempfile
+from datetime import timedelta
 from resume_parser import extract_text_from_pdf
 from email_agent import generate_job_application_email
 from resume_matcher import find_best_resume
@@ -14,14 +15,37 @@ from outlook_sender import send_smtp_email, send_email_via_local_outlook, LOCAL_
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.getenv('SECRET_KEY', 'job-email-sender-secret-key-2024')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=365)  # Session lasts 1 year
 # app.config['UPLOAD_FOLDER'] is now dynamic per user, so we handle it in routes
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max limit
 
 @app.before_request
 def ensure_user_id():
-    if 'user_id' not in session:
+    session.permanent = True  # Make session persistent
+    # Check if user_id is passed via query param (from localStorage sync)
+    ls_user_id = request.args.get('sync_user_id')
+    if ls_user_id and len(ls_user_id) == 36:  # Valid UUID length
+        session['user_id'] = ls_user_id
+    elif 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
+
+@app.route('/api/get_user_id')
+def get_user_id():
+    """API endpoint to get current user_id for localStorage sync."""
+    from flask import jsonify
+    return jsonify({'user_id': session.get('user_id', '')})
+
+@app.route('/api/set_user_id', methods=['POST'])
+def set_user_id():
+    """API endpoint to set user_id from localStorage."""
+    from flask import jsonify
+    data = request.get_json() or {}
+    ls_user_id = data.get('user_id', '')
+    if ls_user_id and len(ls_user_id) == 36:
+        session['user_id'] = ls_user_id
+        return jsonify({'success': True, 'user_id': ls_user_id})
+    return jsonify({'success': False, 'user_id': session.get('user_id', '')})
 
 @app.route('/')
 def index():
@@ -193,6 +217,54 @@ def delete_resume(filename):
     except Exception as e:
         flash(f"Error deleting: {e}")
     return redirect(url_for('index'))
+
+@app.route('/tracker')
+def tracker():
+    """View all sent applications in a data table."""
+    import pandas as pd
+    from datetime import datetime, timedelta
+    
+    user_id = session.get('user_id')
+    path = get_tracker_path(user_id)
+    
+    data = []
+    total_applications = 0
+    today_applications = 0
+    this_week = 0
+    has_data = False
+    
+    if os.path.exists(path):
+        try:
+            df = pd.read_excel(path)
+            if not df.empty:
+                has_data = True
+                data = df.to_dict('records')
+                total_applications = len(data)
+                
+                # Calculate stats
+                today = datetime.now().date()
+                week_ago = today - timedelta(days=7)
+                
+                for row in data:
+                    try:
+                        date_str = str(row.get('Date Applied', ''))
+                        if date_str:
+                            applied_date = pd.to_datetime(date_str).date()
+                            if applied_date == today:
+                                today_applications += 1
+                            if applied_date >= week_ago:
+                                this_week += 1
+                    except:
+                        pass
+        except Exception as e:
+            print(f"Error reading tracker: {e}")
+    
+    return render_template('tracker.html', 
+                           data=data, 
+                           has_data=has_data,
+                           total_applications=total_applications,
+                           today_applications=today_applications,
+                           this_week=this_week)
 
 @app.route('/download_tracker')
 def download_tracker():

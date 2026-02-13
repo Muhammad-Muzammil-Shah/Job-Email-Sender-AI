@@ -12,6 +12,26 @@
 </head>
 <body>
 
+<script>
+// Sync user_id between localStorage and server session
+(async function syncUserId() {
+    const storedId = localStorage.getItem('jobApp_user_id');
+    if (storedId) {
+        await fetch('/api/set_user_id', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_id: storedId})
+        });
+    } else {
+        const resp = await fetch('/api/get_user_id');
+        const data = await resp.json();
+        if (data.user_id) {
+            localStorage.setItem('jobApp_user_id', data.user_id);
+        }
+    }
+})();
+</script>
+
 <div class="container">
     <div class="step-indicator text-center mb-4">
         <span class="step-badge" style="display:inline-block;width:30px;height:30px;line-height:30px;border-radius:50%;background:#e9ecef;color:#6c757d;margin:0 5px;text-align:center;">1</span>
@@ -19,6 +39,8 @@
         <span class="step-badge active" style="display:inline-block;width:30px;height:30px;line-height:30px;border-radius:50%;background:#0d6efd;color:white;margin:0 5px;text-align:center;font-weight:bold;">3</span>
         <h4 class="mt-2">Review & Send</h4>
         <a href="/upload" class="text-decoration-none small">← Back to Processing</a>
+        <span class="mx-2">|</span>
+        <a href="/tracker" class="text-decoration-none small">📊 View Sent Applications</a>
     </div>
     
     {% with messages = get_flashed_messages() %}
