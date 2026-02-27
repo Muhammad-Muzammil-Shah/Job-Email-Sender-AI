@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% set active_page = 'profile' %}
+
+{% block title %}My Profile — JobFlow AI{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+    <h2>👤 My Profile</h2>
+    <p>Manage your resumes, GitHub profile, and email credentials in one place.</p>
+</div>
+
+<div class="grid-2">
+    <!-- Left Column: Resumes -->
+    <div class="animate-in">
+        <div class="glass-card mb-md">
+            <div class="glass-card-header">
+                <div class="card-icon" style="background: rgba(6, 182, 212, 0.15); color: #67e8f9;">📄</div>
+                <div>
+                    <h3>My Resumes</h3>
+                    <p>Upload PDF resumes — AI will pick the best match for each job.</p>
+                </div>
+            </div>
+
+            <!-- Upload Zone -->
+            <form action="/profile" method="POST" enctype="multipart/form-data" id="resumeForm">
+                <input type="hidden" name="action" value="upload_resume">
+                <div class="upload-zone" onclick="document.getElementById('resumeInput').click()">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop PDF files here or click to browse</div>
+                    <div class="upload-hint">Supports multiple files • Max 16MB each</div>
+                    <input type="file" name="resume_files" id="resumeInput" accept=".pdf" multiple
+                        onchange="document.getElementById('resumeForm').submit()" style="display:none;">
+                </div>
+            </form>
+
+            <!-- Resume List -->
+            <div class="mt-md">
+                <div class="flex-between mb-sm">
+                    <span
+                        style="font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Saved Resumes ({{ resumes|length }})
+                    </span>
+                </div>
+                {% if resumes %}
+                <ul class="file-list">
+                    {% for resume in resumes %}
+                    <li class="file-item">
+                        <div class="file-name">
+                            <span class="icon">📎</span>
+                            <span
+                                style="max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                                title="{{ resume }}">{{ resume }}</span>
+                        </div>
+                        <a href="/delete_resume/{{ resume }}" class="file-delete"
+                            onclick="return confirmAction('Delete {{ resume }}?')" title="Delete">✕</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-state" style="padding: 32px 16px;">
+                    <div class="empty-icon">📄</div>
+                    <div class="empty-title">No Resumes Yet</div>
+                    <div class="empty-desc">Upload your first resume to get started.</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: GitHub + Credentials -->
+    <div class="animate-in">
+        <!-- GitHub -->
+        <div class="glass-card mb-md">
+            <div class="glass-card-header">
+                <div class="card-icon" style="background: rgba(124, 58, 237, 0.15); color: #a78bfa;">🔗</div>
+                <div>
+                    <h3>GitHub Profile</h3>
+                    <p>AI will scrape and include relevant projects in your emails.</p>
+                </div>
+            </div>
+
+            <form action="/profile" method="POST" id="githubForm">
+                <input type="hidden" name="action" value="github_save">
+                <div class="form-group">
+                    <label class="form-label">GitHub Profile URL</label>
+                    <input type="url" class="form-input" name="github_profile"
+                        placeholder="https://github.com/your-username" value="{{ github_profile or '' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">GitHub Access Token <span
+                            style="color: var(--text-muted);">(optional)</span></label>
+                    <input type="password" class="form-input" name="github_token"
+                        placeholder="For private repos or high rate limits" value="{{ github_token or '' }}">
+                    <div class="form-hint">
+                        Need one? <a href="https://github.com/settings/tokens" target="_blank">Generate a token here
+                            →</a>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">
+                    💾 Save GitHub Settings
+                </button>
+            </form>
+
+            <!-- Scrape & Download Section -->
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-glass);">
+                <div class="flex-between mb-sm">
+                    <span
+                        style="font-size: 13px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Scraped Projects
+                    </span>
+                    {% if cached_at %}
+                    <span class="badge badge-green">Last scraped: {{ cached_at }}</span>
+                    {% endif %}
+                </div>
+
+                {% if cached_project_count > 0 %}
+                <div style="margin-bottom: 12px;">
+                    <span style="font-size: 14px; color: var(--text-secondary);">
+                        📦 <strong>{{ cached_project_count }}</strong> projects cached
+                    </span>
+                </div>
+
+                <!-- Show first 5 projects preview -->
+                <div style="max-height: 200px; overflow-y: auto; margin-bottom: 12px;">
+                    {% for proj in cached_projects[:5] %}
+                    <div class="project-card">
+                        <div class="project-name">{{ proj.name }}</div>
+                        <a href="{{ proj.url }}" target="_blank" class="project-link">{{ proj.url }}</a>
+                    </div>
+                    {% endfor %}
+                    {% if cached_project_count > 5 %}
+                    <div style="text-align: center; padding: 8px; color: var(--text-muted); font-size: 12px;">
+                        ... and {{ cached_project_count - 5 }} more projects
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Download Buttons -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                    <a href="/download_github_pdf" class="btn btn-outline btn-sm">📄 Download PDF</a>
+                    <a href="/download_github_word" class="btn btn-outline btn-sm">📝 Download Word</a>
+                </div>
+                {% else %}
+                <div style="padding: 16px 0; color: var(--text-muted); font-size: 13px; text-align: center;">
+                    No projects scraped yet. Save your GitHub profile above, then click Scrape.
+                </div>
+                {% endif %}
+
+                <a href="/sync_github" class="btn btn-secondary btn-full"
+                    onclick="showLoading('🔄 Syncing & Summarizing GitHub projects...')">
+                    🔄 {% if cached_project_count > 0 %}Re-Sync{% else %}Sync{% endif %} GitHub Projects
+                </a>
+            </div>
+        </div>
+
+        <!-- Email Credentials -->
+        <div class="glass-card">
+            <div class="glass-card-header">
+                <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7;">🔐</div>
+                <div>
+                    <h3>Email Credentials</h3>
+                    <p>Saved in your browser only — never sent to our server until you send an email.</p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email Service</label>
+                <select class="form-select" id="profileService" onchange="updatePasswordHint()">
+                    <option value="gmail">Gmail (Recommended)</option>
+                    <option value="outlook">Outlook</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-input" id="profileEmail" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label" id="profilePassLabel">App Password</label>
+                <input type="password" class="form-input" id="profilePass" placeholder="16-character code">
+                <div class="form-hint" id="profilePassHint">
+                    Gmail: <a href="https://myaccount.google.com/apppasswords" target="_blank">Create an App Password
+                        →</a>
+                </div>
+            </div>
+
+            <div class="flex-between">
+                <button type="button" class="btn btn-primary btn-full" onclick="saveProfileCredentials()"
+                    style="flex: 1;">
+                    💾 Save Credentials
+                </button>
+            </div>
+            <div class="alert alert-success mt-sm" id="credSavedAlert" style="display: none; margin-bottom: 0;">
+                <span>✓</span> Credentials saved to browser!
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Load saved credentials
+        const creds = Credentials.load();
+        document.getElementById('profileEmail').value = creds.email;
+        document.getElementById('profilePass').value = creds.password;
+        document.getElementById('profileService').value = creds.service;
+        updatePasswordHint();
+    });
+
+    function updatePasswordHint() {
+        const service = document.getElementById('profileService').value;
+        const hint = document.getElementById('profilePassHint');
+        const label = document.getElementById('profilePassLabel');
+        if (service === 'gmail') {
+            label.textContent = 'App Password';
+            hint.innerHTML = 'Gmail: <a href="https://myaccount.google.com/apppasswords" target="_blank">Create an App Password →</a>';
+        } else {
+            label.textContent = 'Password';
+            hint.textContent = 'Use your regular Outlook login password.';
+        }
+    }
+
+    function saveProfileCredentials() {
+        const email = document.getElementById('profileEmail').value;
+        const pass = document.getElementById('profilePass').value;
+        const service = document.getElementById('profileService').value;
+
+        if (!email || !pass) {
+            alert('Please fill in both email and password.');
+            return;
+        }
+
+        if (service === 'gmail' && pass.length < 10) {
+            alert('Gmail App Password looks too short. It should be 16 characters.');
+            return;
+        }
+
+        Credentials.save(email, pass, service);
+
+        const alert_el = document.getElementById('credSavedAlert');
+        alert_el.style.display = 'flex';
+        setTimeout(() => { alert_el.style.display = 'none'; }, 3000);
+    }
+</script>
+{% endblock %}

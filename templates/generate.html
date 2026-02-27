@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% set active_page = 'home' %}
+
+{% block title %}Review & Send — JobFlow AI{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+    <div class="flex-between">
+        <div>
+            <h2>📧 Review & Send Email</h2>
+            <p>AI matched your best resume and generated a professional email. Review, edit, and send.</p>
+        </div>
+        <a href="/" class="btn btn-secondary">← Back</a>
+    </div>
+</div>
+
+<!-- AI Match Info -->
+<div class="grid-2 animate-in mb-md">
+    <div class="glass-card">
+        <div class="glass-card-header">
+            <div class="card-icon" style="background: rgba(6, 182, 212, 0.15); color: #67e8f9;">📄</div>
+            <div>
+                <h3>Matched Resume</h3>
+                <p>AI selected the best fit for this job.</p>
+            </div>
+        </div>
+        <div class="file-item">
+            <div class="file-name">
+                <span class="icon">📎</span>
+                <span>{{ data.resume_name }}</span>
+            </div>
+            <span class="badge badge-green">Best Match</span>
+        </div>
+    </div>
+
+    {% if data.github_projects and data.github_projects|length > 0 %}
+    <div class="glass-card">
+        <div class="glass-card-header">
+            <div class="card-icon" style="background: rgba(124, 58, 237, 0.15); color: #a78bfa;">🔗</div>
+            <div>
+                <h3>GitHub Projects</h3>
+                <p>Top relevant projects included in email.</p>
+            </div>
+        </div>
+        {% for proj in data.github_projects %}
+        <div class="project-card">
+            <div class="project-name">{{ proj.name }}</div>
+            <div class="project-desc">{{ proj.readme[:100] }}{% if proj.readme and proj.readme|length > 100 %}...{%
+                endif %}</div>
+            <a href="{{ proj.url }}" target="_blank" class="project-link">{{ proj.url }}</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass-card">
+        <div class="glass-card-header">
+            <div class="card-icon" style="background: rgba(124, 58, 237, 0.15); color: #a78bfa;">🔗</div>
+            <div>
+                <h3>GitHub Projects</h3>
+                <p>No GitHub profile configured.</p>
+            </div>
+        </div>
+        {% if data.github_error %}
+        <div class="alert alert-warning" style="margin: 0;">
+            <span>⚠️</span> {{ data.github_error }}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding: 24px 16px;">
+            <div class="empty-icon" style="font-size: 32px;">🔗</div>
+            <div class="empty-desc">Set up your GitHub in <a href="/profile">Profile</a> to include projects.</div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Email Form -->
+<div class="glass-card animate-in">
+    <div class="glass-card-header">
+        <div class="card-icon" style="background: rgba(16, 185, 129, 0.15); color: #6ee7b7;">✉️</div>
+        <div>
+            <h3>Generated Email</h3>
+            <p>Edit the fields below as needed before sending.</p>
+        </div>
+    </div>
+
+    <form method="POST" action="/send" id="sendForm">
+        <div class="grid-2">
+            <div class="form-group">
+                <label class="form-label">To (Recruiter Email) *</label>
+                <input type="email" class="form-input" name="recipient" value="{{ data.recruiter_email }}"
+                    placeholder="recruiter@company.com" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Subject *</label>
+                <input type="text" class="form-input" name="subject" value="{{ data.subject }}" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Email Body *</label>
+            <textarea class="form-textarea large" name="body" required>{{ data.body }}</textarea>
+        </div>
+
+        <!-- Hidden fields for credentials -->
+        <input type="hidden" name="email_user" id="hidden_email">
+        <input type="hidden" name="email_pass" id="hidden_pass">
+        <input type="hidden" name="service" id="hidden_service">
+        <input type="hidden" name="send_method" id="send_method" value="smtp">
+
+        <!-- Credential Section -->
+        <div class="credential-section" id="credentialSection">
+            <div class="cred-header">
+                <span>🔐</span>
+                <span>Email Credentials</span>
+                <span class="badge badge-green" id="credStatus" style="display: none;">Saved ✓</span>
+            </div>
+            <div class="grid-3">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Service</label>
+                    <select class="form-select" id="serviceSelect" onchange="onServiceChange()">
+                        <option value="gmail">Gmail</option>
+                        <option value="outlook">Outlook</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Your Email</label>
+                    <input type="email" class="form-input" id="credEmail" placeholder="you@example.com">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" id="passLabel">App Password</label>
+                    <input type="password" class="form-input" id="credPass" placeholder="16-char app password">
+                </div>
+            </div>
+            <div class="form-hint mt-sm" id="credHint">
+                Gmail: Use a <a href="https://myaccount.google.com/apppasswords" target="_blank">16-char App
+                    Password</a> (not your regular password).
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex-center mt-md">
+            <button type="button" class="btn btn-success btn-lg btn-glow" style="width: 100%; max-width: 400px;"
+                onclick="submitSend('smtp')">
+                Send Email 🚀
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function loadSavedCredentials() {
+        const creds = Credentials.load();
+        document.getElementById('credEmail').value = creds.email;
+        document.getElementById('credPass').value = creds.password;
+        document.getElementById('serviceSelect').value = creds.service;
+
+        if (creds.email && creds.password) {
+            document.getElementById('credStatus').style.display = 'inline-flex';
+        }
+
+        onServiceChange();
+    }
+
+    function onServiceChange() {
+        const service = document.getElementById('serviceSelect').value;
+        const hint = document.getElementById('credHint');
+        const label = document.getElementById('passLabel');
+        if (service === 'gmail') {
+            label.textContent = 'App Password';
+            hint.innerHTML = 'Gmail: Use a <a href="https://myaccount.google.com/apppasswords" target="_blank">16-char App Password</a> (not your regular password).';
+        } else {
+            label.textContent = 'Password';
+            hint.innerHTML = 'Outlook: Use your regular login password or an App Password if 2FA is on.';
+        }
+    }
+
+    function submitSend(method) {
+        const email = document.getElementById('credEmail').value;
+        const pass = document.getElementById('credPass').value;
+        const service = document.getElementById('serviceSelect').value;
+
+        // Save to localStorage
+        if (email && pass) {
+            Credentials.save(email, pass, service);
+        }
+
+        // Populate hidden fields
+        document.getElementById('hidden_email').value = email;
+        document.getElementById('hidden_pass').value = pass;
+        document.getElementById('hidden_service').value = service;
+        document.getElementById('send_method').value = method;
+
+        if (method === 'smtp') {
+            if (!email || !pass) {
+                alert('Please enter your email credentials before sending.');
+                return;
+            }
+            if (service === 'gmail' && pass.length < 10) {
+                alert('Gmail App Password should be 16 characters. Please check.');
+                return;
+            }
+        }
+
+        showLoading('Sending your email...');
+        document.getElementById('sendForm').submit();
+    }
+
+    // Init on load
+    document.addEventListener('DOMContentLoaded', loadSavedCredentials);
+</script>
+{% endblock %}

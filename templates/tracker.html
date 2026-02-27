@@ -1,137 +1,107 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Application Tracker - AI Job Assistant</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; padding-top: 30px; padding-bottom: 30px; }
-        .container { max-width: 1000px; }
-        .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
+{% set active_page = 'tracker' %}
 
-<script>
-// Sync user_id between localStorage and server session
-(async function syncUserId() {
-    const storedId = localStorage.getItem('jobApp_user_id');
-    if (storedId) {
-        await fetch('/api/set_user_id', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({user_id: storedId})
-        });
-    } else {
-        const resp = await fetch('/api/get_user_id');
-        const data = await resp.json();
-        if (data.user_id) {
-            localStorage.setItem('jobApp_user_id', data.user_id);
-        }
-    }
-})();
-</script>
+{% block title %}Application Tracker — JobFlow AI{% endblock %}
 
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+{% block head %}
+<link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+    <div class="flex-between">
         <div>
-            <h3>📊 Application Tracker</h3>
-            <p class="text-muted mb-0">View all your sent job applications</p>
+            <h2>📊 Application Tracker</h2>
+            <p>Track all your sent job applications in one place.</p>
         </div>
-        <div>
-            <a href="/" class="btn btn-outline-secondary me-2">← Back to Home</a>
+        <div style="display: flex; gap: 10px;">
             {% if has_data %}
             <a href="/download_tracker" class="btn btn-success">📥 Download Excel</a>
             {% endif %}
-        </div>
-    </div>
-
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert alert-info">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <!-- Stats Card -->
-    <div class="card stats-card mb-4">
-        <div class="card-body">
-            <div class="row text-center">
-                <div class="col-md-4">
-                    <h2 class="mb-0">{{ total_applications }}</h2>
-                    <small>Total Applications</small>
-                </div>
-                <div class="col-md-4">
-                    <h2 class="mb-0">{{ today_applications }}</h2>
-                    <small>Sent Today</small>
-                </div>
-                <div class="col-md-4">
-                    <h2 class="mb-0">{{ this_week }}</h2>
-                    <small>This Week</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Data Table -->
-    <div class="card">
-        <div class="card-body">
-            {% if has_data %}
-            <table id="trackerTable" class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>#</th>
-                        <th>Job Title</th>
-                        <th>Email Address</th>
-                        <th>Date Applied</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in data %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ row['Job Title'] }}</td>
-                        <td>{{ row['Email Address'] }}</td>
-                        <td>{{ row['Date Applied'] }}</td>
-                        <td>
-                            <span class="badge bg-success">{{ row['Status'] }}</span>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="text-center py-5">
-                <h5 class="text-muted">No applications yet</h5>
-                <p class="text-muted">Start sending job applications to see them here!</p>
-                <a href="/upload" class="btn btn-primary">🚀 Send Your First Application</a>
-            </div>
-            {% endif %}
+            <a href="/" class="btn btn-primary">➕ New Application</a>
         </div>
     </div>
 </div>
 
-<!-- DataTables JS -->
+<!-- Stats -->
+<div class="stats-grid animate-in">
+    <div class="stat-card purple">
+        <div class="stat-icon">📨</div>
+        <div class="stat-number">{{ total_applications }}</div>
+        <div class="stat-label">Total Applications</div>
+    </div>
+    <div class="stat-card cyan">
+        <div class="stat-icon">📅</div>
+        <div class="stat-number">{{ today_applications }}</div>
+        <div class="stat-label">Sent Today</div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon">📈</div>
+        <div class="stat-number">{{ this_week }}</div>
+        <div class="stat-label">This Week</div>
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="glass-card animate-in">
+    <div class="glass-card-header">
+        <div class="card-icon" style="background: rgba(59, 130, 246, 0.15); color: #93c5fd;">📋</div>
+        <div>
+            <h3>Application History</h3>
+            <p>All sent applications with date, title, and recipient.</p>
+        </div>
+    </div>
+
+    {% if has_data %}
+    <div class="data-table-wrapper">
+        <table id="trackerTable" class="data-table">
+            <thead>
+                <tr>
+                    <th>Date Applied</th>
+                    <th>Job Title</th>
+                    <th>Email</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ row['Date Applied'] }}</td>
+                    <td>{{ row['Job Title'] }}</td>
+                    <td>{{ row['Email Address'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">No Applications Yet</div>
+        <div class="empty-desc">Start by pasting a job description on the Home page.</div>
+        <a href="/" class="btn btn-primary">Get Started →</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
-    $(document).ready(function() {
-        $('#trackerTable').DataTable({
-            order: [[3, 'desc']], // Sort by date descending
-            pageLength: 10,
-            language: {
-                search: "🔍 Search:",
-                lengthMenu: "Show _MENU_ entries",
-                info: "Showing _START_ to _END_ of _TOTAL_ applications"
-            }
-        });
+    $(document).ready(function () {
+        if ($('#trackerTable').length) {
+            $('#trackerTable').DataTable({
+                order: [[0, 'desc']],
+                pageLength: 15,
+                language: {
+                    search: "🔍 Search:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ applications",
+                    emptyTable: "No applications found."
+                },
+                dom: '<"flex-between mb-md"lf>rt<"flex-between mt-md"ip>'
+            });
+        }
     });
 </script>
-
-</body>
-</html>
+{% endblock %}

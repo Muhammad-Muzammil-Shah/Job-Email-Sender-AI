@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% set active_page = 'home' %}
+
+{% block title %}Home — JobFlow AI{% endblock %}
+
+{% block content %}
+<div class="page-header animate-in">
+    <h2>✨ Generate Application Email</h2>
+    <p>Paste a job description and let AI craft the perfect application email for you.</p>
+</div>
+
+<!-- Stats Summary -->
+<div class="stats-grid animate-in">
+    <div class="stat-card purple">
+        <div class="stat-icon">📨</div>
+        <div class="stat-number">{{ total_applications }}</div>
+        <div class="stat-label">Total Applications</div>
+    </div>
+    <div class="stat-card cyan">
+        <div class="stat-icon">📅</div>
+        <div class="stat-number">{{ today_applications }}</div>
+        <div class="stat-label">Sent Today</div>
+    </div>
+    <div class="stat-card green">
+        <div class="stat-icon">📈</div>
+        <div class="stat-number">{{ this_week }}</div>
+        <div class="stat-label">This Week</div>
+    </div>
+    <div class="stat-card amber">
+        <div class="stat-icon">📄</div>
+        <div class="stat-number">{{ resume_count }}</div>
+        <div class="stat-label">Resumes</div>
+    </div>
+</div>
+
+<!-- JD Input -->
+<div class="glass-card animate-in">
+    <div class="glass-card-header">
+        <div class="card-icon" style="background: rgba(124, 58, 237, 0.15); color: #a78bfa;">📝</div>
+        <div>
+            <h3>Job Description</h3>
+            <p>Paste the full job posting below — AI will match your best resume and generate a tailored email.</p>
+        </div>
+    </div>
+
+    <form action="/generate" method="POST" id="generateForm"
+        onsubmit="showLoading('🤖 AI is analyzing the job and crafting your email...')">
+        <div class="form-group">
+            <label class="form-label">Job Description *</label>
+            <textarea class="form-textarea large" name="job_description"
+                placeholder="Paste the complete job description here...&#10;&#10;Include: job title, requirements, responsibilities, company info, and recruiter email (if available)."
+                required id="jdInput"></textarea>
+            <div class="form-hint">Tip: Include the recruiter's email in the JD for auto-detection.</div>
+        </div>
+        <div class="flex-between">
+            <div>
+                {% if not has_resume %}
+                <span class="badge badge-amber">⚠ No resumes uploaded — <a href="/profile"
+                        style="color: #fcd34d;">Upload one</a></span>
+                {% else %}
+                <span class="badge badge-green">✓ {{ resume_count }} resume{{ 's' if resume_count > 1 else '' }}
+                    ready</span>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg btn-glow" {% if not has_resume %}disabled
+                title="Upload a resume first" {% endif %}>
+                Generate Email ✨
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid-2 mt-md animate-in">
+    <a href="/profile" class="glass-card" style="text-decoration: none; cursor: pointer;">
+        <div class="flex-between">
+            <div>
+                <h3 style="font-size: 16px; margin-bottom: 4px;">👤 My Profile</h3>
+                <p style="font-size: 13px; color: var(--text-muted);">Manage resumes, GitHub, and email credentials.</p>
+            </div>
+            <span style="font-size: 24px; color: var(--text-muted);">→</span>
+        </div>
+    </a>
+    <a href="/tracker" class="glass-card" style="text-decoration: none; cursor: pointer;">
+        <div class="flex-between">
+            <div>
+                <h3 style="font-size: 16px; margin-bottom: 4px;">📊 Application Tracker</h3>
+                <p style="font-size: 13px; color: var(--text-muted);">View history and download Excel reports.</p>
+            </div>
+            <span style="font-size: 24px; color: var(--text-muted);">→</span>
+        </div>
+    </a>
+</div>
+{% endblock %}

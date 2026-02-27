@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def find_best_resume(job_description: str, resumes: dict) -> dict:
     """
@@ -49,6 +48,7 @@ def find_best_resume(job_description: str, resumes: dict) -> dict:
     """
     
     try:
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[

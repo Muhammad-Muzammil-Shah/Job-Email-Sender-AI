@@ -136,19 +136,22 @@ def save_to_excel(job_title, email_address, user_id=None):
     Args:
         job_title (str): The title of the job.
         email_address (str): The recruiter's email address.
+        user_id (str): Unique user ID for file isolation.
     """
     # 1. Save to Google Sheets (Cloud Persistence)
     gs_success, gs_msg = save_to_google_sheet(job_title, email_address)
-    print(f"Google Sheets Status: {gs_msg}")
+    if not gs_success:
+        print(f"Google Sheets Sync Problem: {gs_msg}")
 
     # 2. Save to Local/Persistent Excel (Backup)
     file_path = get_tracker_path(user_id)
+    # Ensure recipient is included as requested ("date, title, and recipient")
     date_applied = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     new_data = {
+        "Date Applied": [date_applied],
         "Job Title": [job_title],
         "Email Address": [email_address],
-        "Date Applied": [date_applied],
         "Status": ["Sent"]
     }
     
@@ -157,11 +160,20 @@ def save_to_excel(job_title, email_address, user_id=None):
     try:
         if os.path.exists(file_path):
             df_existing = pd.read_excel(file_path)
+            # Ensure columns exist in case of old file versions
+            # If they had "Recipient Email" from my previous bug, we should handle it
+            if "Recipient Email" in df_existing.columns and "Email Address" not in df_existing.columns:
+                df_existing.rename(columns={"Recipient Email": "Email Address"}, inplace=True)
+            
+            for col in new_data.keys():
+                if col not in df_existing.columns:
+                    df_existing[col] = ""
             df_combined = pd.concat([df_existing, df_new], ignore_index=True)
             df_combined.to_excel(file_path, index=False)
         else:
             df_new.to_excel(file_path, index=False)
+        print(f"Successfully saved to tracker: {file_path}")
         return True
     except Exception as e:
-        print(f"Error saving to Excel: {e}")
+        print(f"CRITICAL ERROR saving to Excel: {e}")
         return False
