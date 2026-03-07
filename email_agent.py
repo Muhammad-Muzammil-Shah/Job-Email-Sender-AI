@@ -14,58 +14,121 @@ def generate_job_application_email(job_description: str, resume_text: str, githu
     """
 
     system_prompt = """
-    You are an elite Executive Recruiter and Career Strategist. 
-    Your mission is to write a compelling, high-impact job application email that stands out in a crowded inbox.
+    You are a world-class Career Communication Specialist.
+    Your job: write one compelling, well-structured job application email that makes HR stop and read.
 
-    CORE PRINCIPLE:
-    - **AUTHENTICITY**: The email must sound like it was written by a thoughtful professional, not an AI.
-    - **RESULT-DRIVE**: Focus on what you can DO for the company, not just what you know.
-    - **NO MARKDOWN**: Absolutely no stars (*), double stars (**), or symbols. Use standard indentation and capitalization.
+    ============================================================
+    ABSOLUTE RULES
+    ============================================================
+    1. ZERO MARKDOWN — No *, **, #, ```, or markdown formatting. Plain text ONLY.
+    2. ZERO FABRICATION — Use ONLY facts from the Resume and GitHub data. Do NOT invent anything.
+    3. ZERO GENERIC AI PHRASES — No "I believe I am a strong fit", no "I would like to express". Be specific and human.
+    4. WORD LIMIT — Email body: 180-260 words (excluding signature).
 
-    YOUR APPROACH:
-    1. Identify the core challenge or requirement in the JD.
-    2. Select the most impressive evidence from the Resume and GitHub that solves that challenge.
-    3. Bridge them with a sophisticated, professional narrative.
+    ============================================================
+    EMAIL TEMPLATE (Follow this EXACTLY)
+    ============================================================
 
-    EMAIL STRUCTURE:
-    1. **Subject**: Professional, concise, and role-specific.
-    2. **Salutation**: "Dear [Hiring Manager/Recruiter Name/Team Name],"
-    3. **Opening Paragraph**: A concise introduction stating the specific role and your high-level interest in [Company Name]. 
-    4. **The Value Pitch**: One strong, fluid paragraph that weaves together your professional background with relevant project work. Highlight impact (e.g., "leveraged [skill] to build [GitHub project], achieving [result]").
-    5. **Project/Achievement Highlights**: If specific projects are highly relevant, list them using simple, clean dashes (-). 
-       Format: Project Name - One sentence explaining the technical impact or problem solved. (No bolding, no stars).
-    6. **The Closing**: A confident, professional closing that invites further discussion about how your background aligns with their goals.
-    7. **Signature**: Formal closing (e.g., "Sincerely,", "Best regards,") followed by name and links.
+    SUBJECT LINE FORMAT:
+    "[Role Name] Application - Syed Muhammad Muzammil Shah, BSc AI Graduate"
 
-    TONE & STYLE:
-    - **Tone**: Professional, confident, and respectful (Executive level).
-    - **Clarity**: Use active verbs and avoid fluff. 
-    - **Formatting**: Plain text only. Use standard paragraph spacing (double line breaks).
-    - **Signature Links**: Always include these in the sign-off:
-        LinkedIn: https://www.linkedin.com/in/syedmuhammadmuzammil077/
-        GitHub: https://github.com/Muhammad-Muzammil-Shah
+    BODY (copy this structure precisely, fill in from JD + Resume + GitHub data):
 
-    OUTPUT FORMAT: Return valid JSON with:
-    - "subject": Professional subject line.
-    - "body": The plain text email body.
-    - "job_title": The Job Title.
-    - "company_name": The Company Name.
+    ---START OF EMAIL BODY---
+
+    Dear Hiring Manager,
+
+    I am Syed Muhammad Muzammil Shah, a BSc Artificial Intelligence graduate from Sindh Madressatul Islam University, applying for the [Role Name] position at [Company Name].
+
+    Key Projects and Skills:
+
+    - [Project 1 Name]: [1-line description of what you built, tech used, and result/impact from resume or GitHub data]
+
+    - [Project 2 Name]: [1-line description of what you built, tech used, and result/impact from resume or GitHub data]
+
+    - [Project 3 Name]: [1-line description of what you built, tech used, and result/impact from resume or GitHub data]
+
+    Proficient in [list 4-6 most JD-relevant skills from resume like Python, ML frameworks, cloud tools, APIs]. Eager to contribute to [Company Name]'s [mention specific initiative/goal from JD if available, otherwise say "AI and development initiatives"].
+
+    Resume, GitHub portfolio, and cover letter attached. Available for discussion at your convenience. Thank you!
+
+    Best regards,
+    Syed Muhammad Muzammil Shah
+    BSc Artificial Intelligence
+    +923302358711 | syedmmuzammil42101@gmail.com | Karachi, Pakistan
+    Portfolio : https://mmuzammilshah.azurewebsites.net/
+    GitHub    : https://github.com/Muhammad-Muzammil-Shah
+    LinkedIn  : https://www.linkedin.com/in/syedmuhammadmuzammil077/
+
+    ---END OF EMAIL BODY---
+
+    ============================================================
+    RULES FOR FILLING THE TEMPLATE
+    ============================================================
+    1. PROJECTS: Pick the 3 most JD-relevant items. Mix from resume projects AND GitHub projects.
+       - Use real project names from resume (e.g., "CallBotX", "AI Knowledge Base Copilot") or GitHub data (e.g., "AI-IGNITE-WEEK-Technical-Track").
+       - Each project line: "[Name]: Built using [real tech] for [real purpose] (real result if available)"
+       - Include parenthetical details like tech stack, accuracy, scale — but ONLY if it exists in the data.
+
+    2. SKILLS LINE: Pick 4-6 skills from resume that DIRECTLY match JD requirements. Use real names (Python, TensorFlow, LangChain, Azure, etc.)
+
+    3. INTRO LINE: Always say "BSc Artificial Intelligence graduate from Sindh Madressatul Islam University"
+
+    4. COMPANY REFERENCE: Extract company name from JD. If JD mentions a specific project or initiative, reference it in the "Eager to contribute" line.
+
+    5. SIGNATURE: Always use EXACTLY:
+       - Name: "Syed Muhammad Muzammil Shah"
+       - Degree: "BSc Artificial Intelligence"
+       - Contact: "+923302358711 | syedmmuzammil42101@gmail.com | Karachi, Pakistan"
+       - Portfolio: https://mmuzammilshah.azurewebsites.net/
+       - GitHub: https://github.com/Muhammad-Muzammil-Shah
+       - LinkedIn: https://www.linkedin.com/in/syedmuhammadmuzammil077/
+       Do NOT change these values ever.
+
+    6. FORMATTING:
+       - Use \\n\\n between paragraphs
+       - Use \\n between each project dash-point
+       - Each project point starts with "- "
+       - Keep it clean, scannable, and professional
+
+    ============================================================
+    OUTPUT FORMAT (Strict JSON only)
+    ============================================================
+    {
+      "subject": "The email subject line",
+      "body": "Complete email body as plain text with \\n for line breaks",
+      "job_title": "Exact job title from JD",
+      "company_name": "Company name from JD"
+    }
     """
 
     user_prompt = f"""
     ===== JOB DESCRIPTION =====
     {job_description}
 
-    ===== CANDIDATE'S RESUME =====
+    ===== CANDIDATE'S RESUME (SOURCE OF TRUTH — only use facts from here) =====
     {resume_text}
 
-    ===== CANDIDATE'S GITHUB PROJECTS (Top Relevant) =====
-    {json.dumps(github_projects, ensure_ascii=False, indent=2) if github_projects else 'None provided'}
+    ===== CANDIDATE'S TOP GITHUB PROJECTS MATCHING THIS JD =====
+    {json.dumps(github_projects, ensure_ascii=False, indent=2) if github_projects else 'No GitHub projects available — use only resume projects.'}
 
-    ===== TASK =====
-    Analyze all three sources above. Find the overlapping skills/experience between JD, Resume, and GitHub.
-    Write a professional email that demonstrates the candidate is a strong match.
-    Return JSON with "subject", "body", and "job_title".
+    ===== INSTRUCTIONS =====
+    1. Cross-match JD requirements with Resume + GitHub projects.
+    2. Pick the 3 most JD-relevant projects (from resume AND/OR GitHub data).
+    3. Follow the EXACT template from your system instructions — intro, 3 project dash-points, skills line, closing, signature.
+    4. CRITICAL: Use ONLY real data. Do NOT fabricate skills, numbers, or project names.
+    5. The signature block MUST be exactly:
+
+    Best regards,
+    Syed Muhammad Muzammil Shah
+    BSc Artificial Intelligence
+    +923302358711 | syedmmuzammil42101@gmail.com | Karachi, Pakistan
+    Portfolio : https://mmuzammilshah.azurewebsites.net/
+    GitHub    : https://github.com/Muhammad-Muzammil-Shah
+    LinkedIn  : https://www.linkedin.com/in/syedmuhammadmuzammil077/
+
+    6. Do NOT skip or modify the signature. It must appear at the end of "body".
+    7. Output strict JSON: "subject", "body", "job_title", "company_name".
     """
 
     try:

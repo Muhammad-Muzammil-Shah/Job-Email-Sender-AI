@@ -177,9 +177,6 @@ def generate():
             try:
                 # We pass 'cached' directly so it doesn't scrape
                 github_projects = get_github_projects(github_profile, job_description, top_n=3, cached_data=cached)
-                if isinstance(github_projects, str):
-                    github_error = github_projects
-                    github_projects = []
             except Exception as e:
                 github_error = str(e)
         else:
@@ -189,18 +186,25 @@ def generate():
     recruiter_email = extract_email(job_description)
     email_content = generate_job_application_email(job_description, final_resume_text, github_projects=github_projects)
 
-    # Store in session
+    # Store in session (keep projects minimal to avoid cookie overflow)
+    session_projects = [
+        {"name": p.get("name", ""), "url": p.get("url", ""), "description": p.get("description", "")}
+        for p in (github_projects or [])
+    ]
     session['email_data'] = {
         "recruiter_email": recruiter_email or "",
         "subject": email_content.get("subject", ""),
         "body": email_content.get("body", ""),
         "resume_name": final_resume_name,
         "job_title": email_content.get("job_title", "Job Application"),
-        "github_projects": github_projects,
+        "github_projects": session_projects,
         "github_error": github_error
     }
 
-    return render_template('generate.html', data=session['email_data'], local_outlook=LOCAL_OUTLOOK_AVAILABLE)
+    # Pass full projects (with summaries) to template directly, not via session
+    display_data = dict(session['email_data'])
+    display_data['github_projects'] = github_projects or []
+    return render_template('generate.html', data=display_data, local_outlook=LOCAL_OUTLOOK_AVAILABLE)
 
 
 @app.route('/send', methods=['POST'])

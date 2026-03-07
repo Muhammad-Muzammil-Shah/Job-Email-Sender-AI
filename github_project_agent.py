@@ -39,4 +39,4 @@ def get_github_projects(profile_url, job_description=None, top_n=3, cached_data=
         
     except Exception as e:
         print(f"Error in get_github_projects: {e}")
-        return str(e)
+        return []

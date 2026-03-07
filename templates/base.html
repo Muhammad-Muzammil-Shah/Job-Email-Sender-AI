@@ -18,9 +18,11 @@
 
     <!-- Mobile Toggle -->
     <button class="mobile-toggle" id="mobileToggle">☰</button>
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="app-layout">
+        <!-- Sidebar Overlay (must be inside app-layout for correct stacking context) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">

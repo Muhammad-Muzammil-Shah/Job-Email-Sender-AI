@@ -69,6 +69,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 overlay.classList.remove('show');
             });
         }
+
+        // Close sidebar when a nav link is clicked (mobile)
+        const navLinks = sidebar.querySelectorAll('.nav-item');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('show');
+            });
+        });
     }
 
     // ---------- Fade-in Animations ----------

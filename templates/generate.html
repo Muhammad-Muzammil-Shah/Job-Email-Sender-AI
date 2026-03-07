@@ -45,8 +45,7 @@
         {% for proj in data.github_projects %}
         <div class="project-card">
             <div class="project-name">{{ proj.name }}</div>
-            <div class="project-desc">{{ proj.readme[:100] }}{% if proj.readme and proj.readme|length > 100 %}...{%
-                endif %}</div>
+            <div class="project-desc">{{ proj.summary[:100] if proj.summary else (proj.description or '') }}{% if proj.summary and proj.summary|length > 100 %}...{% endif %}</div>
             <a href="{{ proj.url }}" target="_blank" class="project-link">{{ proj.url }}</a>
         </div>
         {% endfor %}
