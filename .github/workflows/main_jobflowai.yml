@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - jobflowai
+name: Build and deploy Python app to Azure Web App - JobFlowAI
 
 on:
   push:
@@ -63,14 +63,14 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_E423965FC39741BAA0445244330A9E7D }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8FA8B82E7F1F4E78B7F204DCA9200B68 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_83E53C273F47498FA8791BEABA852BC6 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_1F3940AE959E41DCA201E475A0C0B300 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EC22DE3057274A5A92FE12C572BD4965 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_4D484F9A96EC472D9EDA5C0C5CDF9946 }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'jobflowai'
+          app-name: 'JobFlowAI'
           slot-name: 'Production'
           
